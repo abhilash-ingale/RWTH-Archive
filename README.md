@@ -1,1 +1,1 @@
-# RWTH-Archive : Codes, Course Notes and Assignments
+# RWTH-Archive : Assignment and Lab Codes
