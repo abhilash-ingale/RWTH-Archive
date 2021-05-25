@@ -1,1 +1,1 @@
-# RWTH-Archive : Assignment and Lab Codes
+# RWTH Assignment and Lab Codes
