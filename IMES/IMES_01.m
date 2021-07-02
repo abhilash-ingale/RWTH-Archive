@@ -22,8 +22,20 @@ plastic_ds = read_and_clean("plastic_imu.csv",classf_feats);
 
 % Convert dataset array to the corresponding feature matrix
 empty_ds_ml = ds_with_features(empty_ds,400,3);
-wood_ds_ml = ds_with_features(empty_ds,400,3);
-plastic_ds_ml = ds_with_features(empty_ds,400,3);
+wood_ds_ml = ds_with_features(wood_ds,400,3);
+plastic_ds_ml = ds_with_features(plastic_ds,400,3);
+
+% Stack all datasets together
+all_ds_ml = [empty_ds_ml; wood_ds_ml; plastic_ds_ml];
+
+% Initialize labels
+labels = categorical([zeros(size(empty_ds_ml,1),1);ones(size(wood_ds_ml,1),1); 2*ones(size(plastic_ds_ml,1),1)]);
+
+% Convet array to table 
+ML_feat_table = array2table(all_ds_ml,'VariableNames',{'mean_ax','rms_ax','amp_ax','mean_ay','rms_ay','amp_ay','mean_az','rms_az','amp_az','mean_gx','rms_gx','amp_gx','mean_gy','rms_gy','amp_gy','mean_gz','rms_gz','amp_gz'});
+
+% Add labels column
+ML_feat_table.labels = labels;
 
 %% APPENDIX: User-defined functions
 
@@ -105,10 +117,12 @@ function sampled_ds = ds_with_features(temp_ds, sampling_factor, model_feats)
     for i= 1:sample_count
        % Iterating over columns
         for j= 1:6
+            % Mean calculation
             sampled_ds(i,3*(j-1)+1) = mean(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j));
+            % RMS calculation
             sampled_ds(i,3*(j-1)+2) = rms(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j)); 
+            % Amplitude = Max value with respect to mean value, can be changed
             sampled_ds(i,3*(j-1)+3) = max(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j)) - mean(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j));
         end
     end      
-
 end
