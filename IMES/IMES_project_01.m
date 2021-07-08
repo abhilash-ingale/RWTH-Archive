@@ -12,18 +12,64 @@ empty_ds = read_and_clean("empty_imu.csv",classf_feats);
 wood_ds = read_and_clean("wood_imu.csv",classf_feats);
 plastic_ds = read_and_clean("plastic_imu.csv",classf_feats);
 
-% Visualize data 
+% Visualize data in time-domain
 % Note - X-axis shows no. of points instead of time since all points are sampled at equal frequency i.e 1600 Hz
-%plot_ds(empty_ds);
-%plot_ds(wood_ds);
-%plot_ds(plastic_ds);
+plot_ds(empty_ds);
+plot_ds(wood_ds);
+plot_ds(plastic_ds);
+
+%% FOURIER TRANSFORM & DATA FILTERING
+% Fs = 1600;
+% 
+% %%%%%%%%%%%%%    
+% figure ;
+% L1 = size(empty_ds,1);
+% fft_empty_ax = fft(empty_ds(:,2));
+% P2_1 = abs(fft_empty_ax/L1);
+% P1_1 = P2_1(1:L1/2+1);
+% P1_1(2:end-1) = 2*P1_1(2:end-1);
+% 
+% f1 = Fs*(0:(L1/2))/L1;
+% plot(f1,P1_1) 
+% title('Single-Sided Amplitude Spectrum of X(t)')
+% xlabel('f (Hz)')
+% ylabel('|P1_1(f)|')
+% 
+% %%%%%%%%%%%%%%
+% figure;
+% L2 = size(wood_ds,1);
+% fft_wood_ax = fft(wood_ds(:,2));
+% P2_2 = abs(fft_wood_ax/L2);
+% P1_2 = P2_2(1:L2/2+1);
+% P1_2(2:end-1) = 2*P1_2(2:end-1);
+% 
+% f2 = Fs*(0:(L2/2))/L2;
+% plot(f2,P1_2) 
+% title('Single-Sided Amplitude Spectrum of X(t)')
+% xlabel('f2 (Hz)')
+% ylabel('|P1_2(f)|')
+% 
+% %%%%%%%%%%%%%%
+% figure;
+% L3 = size(plastic_ds,1);
+% fft_plastic_ax = fft(plastic_ds(:,2));
+% P2_3 = abs(fft_plastic_ax/L3);
+% P1_3 = P2_3(1:L3/2+1);
+% P1_3(2:end-1) = 2*P1_3(2:end-1);
+% 
+% f3 = Fs*(0:(L3/2))/L3;
+% plot(f3,P1_3) 
+% title('Single-Sided Amplitude Spectrum of X(t)')
+% xlabel('f3 (Hz)')
+% ylabel('|P1_3(f)|')
+
 
 %% PREPARE DATA FOR ML
 
 % Convert dataset array to the corresponding feature matrix
-empty_ds_ml = ds_with_features(empty_ds,400,3);
-wood_ds_ml = ds_with_features(wood_ds,400,3);
-plastic_ds_ml = ds_with_features(plastic_ds,400,3);
+empty_ds_ml = ds_with_features(empty_ds,6000,3);
+wood_ds_ml = ds_with_features(wood_ds,6000,3);
+plastic_ds_ml = ds_with_features(plastic_ds,12000,3);
 
 % Stack all datasets together
 all_ds_ml = [empty_ds_ml; wood_ds_ml; plastic_ds_ml];
