@@ -18,67 +18,28 @@ plot_ds(empty_ds);
 plot_ds(wood_ds);
 plot_ds(plastic_ds);
 
-%% FOURIER TRANSFORM & DATA FILTERING
-Fs = 1600;
-
-%%%%%%%%%%%%%    
-figure ;
-L1 = size(empty_ds,1);
-fft_empty_ax = fft(empty_ds(:,2));
-P2_1 = abs(fft_empty_ax/L1);
-P1_1 = P2_1(1:L1/2+1);
-P1_1(2:end-1) = 2*P1_1(2:end-1);
-
-f1 = Fs*(0:(L1/2))/L1;
-plot(f1,P1_1) 
-title('Single-Sided Amplitude Spectrum of X(t)')
-xlabel('f (Hz)')
-ylabel('|P1_1(f)|')
-
-%%%%%%%%%%%%%%
-figure;
-L2 = size(wood_ds,1);
-fft_wood_ax = fft(wood_ds(:,2));
-P2_2 = abs(fft_wood_ax/L2);
-P1_2 = P2_2(1:L2/2+1);
-P1_2(2:end-1) = 2*P1_2(2:end-1);
-
-f2 = Fs*(0:(L2/2))/L2;
-plot(f2,P1_2) 
-title('Single-Sided Amplitude Spectrum of X(t)')
-xlabel('f2 (Hz)')
-ylabel('|P1_2(f)|')
-
-%%%%%%%%%%%%%%
-figure;
-L3 = size(plastic_ds,1);
-fft_plastic_ax = fft(plastic_ds(:,2));
-P2_3 = abs(fft_plastic_ax/L3);
-P1_3 = P2_3(1:L3/2+1);
-P1_3(2:end-1) = 2*P1_3(2:end-1);
-
-f3 = Fs*(0:(L3/2))/L3;
-plot(f3,P1_3) 
-title('Single-Sided Amplitude Spectrum of X(t)')
-xlabel('f3 (Hz)')
-ylabel('|P1_3(f)|')
-
-
 %% PREPARE DATA FOR ML
 
+model_feats = 4; 
+
 % Convert dataset array to the corresponding feature matrix
-empty_ds_ml = ds_with_features(empty_ds,3200,5);
-wood_ds_ml = ds_with_features(wood_ds,3200,5);
-plastic_ds_ml = ds_with_features(plastic_ds,3200,5);
+empty_ds_ml = ds_with_features(empty_ds,3200,model_feats);
+wood_ds_ml = ds_with_features(wood_ds,3200,model_feats);
+plastic_ds_ml = ds_with_features(plastic_ds,3200,model_feats);
 
 % Stack all datasets together
 all_ds_ml = [empty_ds_ml; wood_ds_ml; plastic_ds_ml];
 
 % Initialize labels
 labels = categorical([zeros(size(empty_ds_ml,1),1);ones(size(wood_ds_ml,1),1); 2*ones(size(plastic_ds_ml,1),1)]);
+featNames = ["mean_ax","mean_ay","mean_az","mean_gx","mean_gy","mean_gz","rms_ax","rms_ay","rms_az","rms_gx","rms_gy","rms_gz","amp_ax","amp_ay","amp_az","amp_gx","amp_gy","amp_gz","max_ax","max_ay","max_az","max_gx","max_gy","max_gz","min_ax","min_ay","min_az","min_gx","min_gy","min_gz","mode_ax","mode_ay","mode_az","mode_gx","mode_gy","mode_gz"];
+
+% Index iterator over the featNames cell
+indx = model_feats*6; 
+avail_feats = featNames(1:indx);
 
 % Convet array to table 
-ML_feat_table = array2table(all_ds_ml,'VariableNames',{'mean_ax','rms_ax','amp_ax','max_ax','min_ax','mean_ay','rms_ay','amp_ay','max_ay','min_ay','mean_az','rms_az','amp_az','max_az','min_az','mean_gx','rms_gx','amp_gx','max_gx','min_gx','mean_gy','rms_gy','amp_gy','max_gy','min_gy','mean_gz','rms_gz','amp_gz','max_gz','min_gz'});
+ML_feat_table = array2table(all_ds_ml,'VariableNames',avail_feats);
 
 % Add labels column
 ML_feat_table.labels = labels;
@@ -90,8 +51,10 @@ ML_feat_table.labels = labels;
 % WHAT IT DOES - returns the dataset as an array reading required features from csv file
 % file_name : string, name of the csv file i.e. example.csv
 % classf_feats : a vector containing required feature names as strings
+% start_pts : number of points to drop from the start of the data
+% end_pts : number of points to drop from the end of the data
 
-function temp_ds_array = read_and_clean(file_name,classf_feats,start_pt,end_pt)
+function temp_ds_array = read_and_clean(file_name,classf_feats,start_pts,end_pts)
     
     % Import .csv files into datastore
     temp_ds = datastore(file_name,'TreatAsMissing','NA', 'MissingValue',0);
@@ -107,7 +70,10 @@ function temp_ds_array = read_and_clean(file_name,classf_feats,start_pt,end_pt)
     % Why? - They do not have all the 1600 points for the 1st second (observed in all 3 datasets)
     %posn = temp_ds_array(:,1)==0;
     %temp_ds_array(posn,:)= [];
-    temp_ds_array = temp_ds_array(start_pt:end-end_pt,:);
+    
+    % Drop points during transient state of the machine i.e. during the
+    % start and the stopppag
+    temp_ds_array = temp_ds_array(start_pts:end-end_pts,:);
  
 end
 
@@ -166,21 +132,51 @@ function sampled_ds = ds_with_features(temp_ds, sampling_factor, model_feats)
        % Iterating over columns
         for j= 1:6
             
-            % Feature 1 - Mean
-            sampled_ds(i,model_feats*(j-1)+1) = mean(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j));
-            
-            % Feature 2 - RMS
-            sampled_ds(i,model_feats*(j-1)+2) = rms(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j)); 
-            
-            % Feature 3 - Amplitude (Max value with respect to mean value)
-            sampled_ds(i,model_feats*(j-1)+3) = max(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j)) - mean(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j));
+            if (model_feats<7 && model_feats>0)
+                
+                count = 0;
+                
+                if (count<model_feats)
+                    % Feature 1 - Mean
+                    sampled_ds(i,model_feats*(j-1)+1) = mean(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j)); 
+                    count = count + 1;
+                end
+                
+                if (count < model_feats)
+                    % Feature 2 - RMS
+                    sampled_ds(i,model_feats*(j-1)+2) = rms(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j)); 
+                    count = count +1;
+                end
+                
+                if (count < model_feats)
+                    % Feature 3 - Amplitude (Max value with respect to mean value)
+                    sampled_ds(i,model_feats*(j-1)+3) = max(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j)) - mean(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j));
+                    count = count +1;
+                end
+                
+                if (count < model_feats)
+                    % Feature 4 - Max
+                    sampled_ds(i,model_feats*(j-1)+4) = max(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j));
+                    count = count +1;
+                end
 
-            % Feature 4 - Max value
-            sampled_ds(i,model_feats*(j-1)+4) = max(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j));
+                if (count < model_feats)
+                    % Feature 5 - Min
+                    sampled_ds(i,model_feats*(j-1)+5) = min(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j));
+                    count = count +1;
+                end
+                
+                if (count < model_feats)
+                    % Feature 6 - Mode
+                    sampled_ds(i,model_feats*(j-1)+6) = min(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j));
+                    count = count +1;
+                end
             
-            % Feature 5 - Min value
-            sampled_ds(i,model_feats*(j-1)+5) = min(temp_ds((i-1)*sampling_factor+1:i*sampling_factor,j));
-            
+                %disp(count)    
+                
+            else
+                disp("INVALID entry: Number of features either exceeds or falls short of no. of min. features ")
+            end
             
         end
     end      
