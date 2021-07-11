@@ -14,13 +14,13 @@ plastic_ds = read_and_clean("plastic_imu.csv",classf_feats,30000,25000);
 
 % Visualize data in time-domain
 % Note - X-axis shows no. of points instead of time since all points are sampled at equal frequency i.e 1600 Hz
-plot_ds(empty_ds);
-plot_ds(wood_ds);
-plot_ds(plastic_ds);
+%plot_ds(empty_ds);
+%plot_ds(wood_ds);
+%plot_ds(plastic_ds);
 
 %% PREPARE DATA FOR ML
 
-model_feats = 4; 
+model_feats = 3; 
 
 % Convert dataset array to the corresponding feature matrix
 empty_ds_ml = ds_with_features(empty_ds,3200,model_feats);
@@ -44,7 +44,24 @@ ML_feat_table = array2table(all_ds_ml,'VariableNames',avail_feats);
 % Add labels column
 ML_feat_table.labels = labels;
 
+%% TRAIN & TEST MODEL
 
+% Split into train test dataset
+c = cvpartition(ML_feat_table.labels,'HoldOut',0.25); %10% use for testing data
+triidx = training(c);
+testingdata = ML_feat_table(~triidx,:);
+training_validation_data = ML_feat_table(triidx,:);
+
+%Use classification learning apps
+%Select training_validation_data to train and validate
+
+%% Export Model
+
+%Classify the testing dataset using trainedModel
+pred = trainedModel.predictFcn(testingdata);
+
+accuracy = (1-mean(pred~=testingdata.labels))*100;
+fprintf("Test accuracy is %f ", accuracy)
 %% APPENDIX: User-defined functions
 
 % 1. read_and_clean : 
