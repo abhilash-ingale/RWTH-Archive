@@ -1,0 +1,9 @@
+name: csme2_lecture4
+channels:
+  - defaults
+dependencies:
+  - jupyter
+  - matplotlib
+  - scikit-learn
+  - jupyterlab
+

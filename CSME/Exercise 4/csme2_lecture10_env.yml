@@ -1,0 +1,10 @@
+name: csme2_lecture10
+channels:
+  - defaults
+dependencies:
+  - scikit-learn
+  - matplotlib
+  - jupyterlab
+  - jupyter
+  - pandas
+
